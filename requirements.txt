@@ -1,0 +1,4 @@
+flask
+qrcode
+sqlite3
+pyserialhi

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Payment successful — Security tag unlocking">
+    <title>Payment Success — Smart Security Tag</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <!-- ====== Navbar ====== -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="nav-brand">
+                <div class="nav-brand-icon">🛡️</div>
+                <span>SecureTag</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/payment">Payment</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ====== Success Content ====== -->
+    <div class="centered-container">
+        <div class="success-card">
+
+            <!-- Animated Success Icon -->
+            <div class="success-icon">✓</div>
+
+            <h2>Payment Successful</h2>
+
+            <!-- Receipt -->
+            <div class="receipt">
+                <div class="receipt-row">
+                    <span class="receipt-label">Product</span>
+                    <span class="receipt-value">{{ product_name }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Amount</span>
+                    <span class="receipt-value">₹{{ amount }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span class="receipt-label">Status</span>
+                    <span class="receipt-value"><span class="badge paid">PAID</span></span>
+                </div>
+            </div>
+
+            <!-- Countdown Timer -->
+            <div class="timer-container">
+                <div class="timer-ring-wrapper">
+                    <svg class="timer-ring" viewBox="0 0 120 120">
+                        <circle class="timer-ring-bg" cx="60" cy="60" r="54" />
+                        <circle class="timer-ring-progress" id="timer-progress" cx="60" cy="60" r="54" />
+                    </svg>
+                    <div class="timer-number green" id="timer-number">5</div>
+                </div>
+                <div class="timer-status green" id="timer-status">🔓 Tag Unlocked</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group">
+                <a href="/payment" class="btn btn-primary" style="font-size: 0.85rem;">
+                    💳 New Payment
+                </a>
+                <a href="/" class="btn btn-secondary" style="margin-top: 0;">
+                    📊 Dashboard
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ====== Countdown Timer Script ====== -->
+    <script>
+        (function () {
+            const TOTAL = 5;
+            const CIRCUMFERENCE = 2 * Math.PI * 54; // r=54
+            let remaining = TOTAL;
+
+            const progressEl = document.getElementById('timer-progress');
+            const numberEl = document.getElementById('timer-number');
+            const statusEl = document.getElementById('timer-status');
+
+            // Set initial stroke
+            progressEl.style.strokeDasharray = CIRCUMFERENCE;
+            progressEl.style.strokeDashoffset = 0;
+
+            function updateTimer() {
+                remaining--;
+
+                // Update ring progress
+                const offset = CIRCUMFERENCE * (1 - remaining / TOTAL);
+                progressEl.style.strokeDashoffset = offset;
+
+                if (remaining > 2) {
+                    // Green phase — unlocked
+                    numberEl.textContent = remaining;
+                    numberEl.className = 'timer-number green';
+                    progressEl.style.stroke = 'var(--green)';
+                    statusEl.textContent = '🔓 Tag Unlocked';
+                    statusEl.className = 'timer-status green';
+                } else if (remaining > 0) {
+                    // Amber phase — re-locking
+                    numberEl.textContent = remaining;
+                    numberEl.className = 'timer-number amber';
+                    progressEl.style.stroke = 'var(--amber)';
+                    statusEl.textContent = '⏳ Re-locking...';
+                    statusEl.className = 'timer-status amber';
+                } else {
+                    // Done — re-locked
+                    numberEl.textContent = '🔒';
+                    numberEl.className = 'timer-number blue';
+                    progressEl.style.stroke = 'var(--blue)';
+                    progressEl.style.strokeDashoffset = CIRCUMFERENCE;
+                    statusEl.textContent = '🔒 Tag Re-Locked';
+                    statusEl.className = 'timer-status blue';
+                    clearInterval(timerInterval);
+                }
+            }
+
+            const timerInterval = setInterval(updateTimer, 1000);
+        })();
+    </script>
+
+</body>
+
+</html>

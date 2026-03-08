@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Security Tag System — Real-time IoT dashboard for retail anti-theft monitoring">
+    <title>Dashboard — Smart Security Tag</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ====== Navbar ====== -->
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a href="/" class="nav-brand">
+            <div class="nav-brand-icon">🛡️</div>
+            <span>SecureTag</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/" class="active">Dashboard</a></li>
+            <li><a href="/payment">Payment</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ====== Page Content ====== -->
+<div class="page-container">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>System Dashboard</h1>
+        <p>Real-time monitoring of your Smart Security Tag system</p>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="status-grid">
+
+        <!-- ESP32 Status -->
+        <div class="status-card green" id="card-esp">
+            <div class="status-card-header">
+                <span class="status-card-icon">📡</span>
+                <span class="status-card-label">ESP32 Status</span>
+            </div>
+            <div class="status-card-value green" id="esp-status">
+                Checking...<span class="pulse-dot green"></span>
+            </div>
+        </div>
+
+        <!-- Lock State -->
+        <div class="status-card blue" id="card-lock">
+            <div class="status-card-header">
+                <span class="status-card-icon">🔒</span>
+                <span class="status-card-label">Lock State</span>
+            </div>
+            <div class="status-card-value blue" id="lock-status">
+                Checking...
+            </div>
+        </div>
+
+        <!-- Tamper Status -->
+        <div class="status-card green" id="card-tamper">
+            <div class="status-card-header">
+                <span class="status-card-icon">🛡️</span>
+                <span class="status-card-label">Tamper Status</span>
+            </div>
+            <div class="status-card-value green" id="tamper-status">
+                Checking...<span class="pulse-dot green"></span>
+            </div>
+        </div>
+
+        <!-- Total Payments -->
+        <div class="status-card purple" id="card-payments">
+            <div class="status-card-header">
+                <span class="status-card-icon">💰</span>
+                <span class="status-card-label">Total Payments</span>
+            </div>
+            <div class="status-card-value purple" id="payment-count">
+                0
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Data Panels -->
+    <div class="panels-grid">
+
+        <!-- Tamper Log Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="icon">🚨</span>
+                <h2>Tamper Log</h2>
+            </div>
+            <div class="panel-body">
+                <table class="data-table" id="tamper-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tamper-tbody">
+                        <tr>
+                            <td colspan="3">
+                                <div class="empty-state">
+                                    <span class="icon">📋</span>
+                                    No tamper events recorded
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payment History Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <span class="icon">💳</span>
+                <h2>Payment History</h2>
+            </div>
+            <div class="panel-body">
+                <table class="data-table" id="payment-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment-tbody">
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <span class="icon">🛒</span>
+                                    No payments recorded
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ====== JavaScript — Live Polling ====== -->
+<script>
+    // Format ISO timestamp to readable format
+    function formatTime(isoStr) {
+        if (!isoStr) return '—';
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            + ' ' + d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    }
+
+    // Badge class helper
+    function badgeClass(type) {
+        const t = type.toLowerCase();
+        if (t === 'tamper') return 'tamper';
+        if (t === 'unlock') return 'unlock';
+        if (t === 'lock') return 'lock';
+        if (t === 'paid') return 'paid';
+        return '';
+    }
+
+    // ---- Update Status Cards ----
+    async function updateStatus() {
+        try {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+
+            // ESP32
+            const espEl = document.getElementById('esp-status');
+            const espCard = document.getElementById('card-esp');
+            if (data.esp_connected) {
+                espEl.innerHTML = 'Online<span class="pulse-dot green"></span>';
+                espEl.className = 'status-card-value green';
+                espCard.className = 'status-card green';
+            } else {
+                espEl.innerHTML = 'Offline<span class="pulse-dot red"></span>';
+                espEl.className = 'status-card-value red';
+                espCard.className = 'status-card red';
+            }
+
+            // Lock
+            const lockEl = document.getElementById('lock-status');
+            const lockCard = document.getElementById('card-lock');
+            if (data.lock_state === 'LOCKED') {
+                lockEl.textContent = '🔒 LOCKED';
+                lockEl.className = 'status-card-value blue';
+                lockCard.className = 'status-card blue';
+            } else if (data.lock_state === 'UNLOCKED') {
+                lockEl.textContent = '🔓 UNLOCKED';
+                lockEl.className = 'status-card-value green';
+                lockCard.className = 'status-card green';
+            } else {
+                lockEl.textContent = '⏳ UNLOCKING';
+                lockEl.className = 'status-card-value amber';
+                lockCard.className = 'status-card amber';
+            }
+
+            // Tamper
+            const tamperEl = document.getElementById('tamper-status');
+            const tamperCard = document.getElementById('card-tamper');
+            if (data.tamper_state === 'SAFE') {
+                tamperEl.innerHTML = 'Safe<span class="pulse-dot green"></span>';
+                tamperEl.className = 'status-card-value green';
+                tamperCard.className = 'status-card green';
+            } else {
+                tamperEl.innerHTML = 'TAMPERED!<span class="pulse-dot red"></span>';
+                tamperEl.className = 'status-card-value red';
+                tamperCard.className = 'status-card red';
+            }
+        } catch (e) {
+            console.error('Status fetch error:', e);
+        }
+    }
+
+    // ---- Update Tamper Logs ----
+    async function updateTamperLogs() {
+        try {
+            const res = await fetch('/api/tamper-logs');
+            const logs = await res.json();
+            const tbody = document.getElementById('tamper-tbody');
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><span class="icon">📋</span>No tamper events recorded</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => `
+                <tr>
+                    <td><span class="badge ${badgeClass(log.event_type)}">${log.event_type}</span></td>
+                    <td>${log.message}</td>
+                    <td>${formatTime(log.timestamp)}</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error('Tamper logs error:', e);
+        }
+    }
+
+    // ---- Update Payment History ----
+    async function updatePayments() {
+        try {
+            const res = await fetch('/api/payments');
+            const payments = await res.json();
+            const tbody = document.getElementById('payment-tbody');
+
+            document.getElementById('payment-count').textContent = payments.length;
+
+            if (payments.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><span class="icon">🛒</span>No payments recorded</div></td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = payments.map(p => `
+                <tr>
+                    <td>${p.product_name}</td>
+                    <td>₹${p.amount}</td>
+                    <td><span class="badge paid">${p.status}</span></td>
+                    <td>${formatTime(p.created_at)}</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error('Payments error:', e);
+        }
+    }
+
+    // ---- Poll every 2 seconds ----
+    function pollAll() {
+        updateStatus();
+        updateTamperLogs();
+        updatePayments();
+    }
+
+    pollAll();
+    setInterval(pollAll, 2000);
+</script>
+
+</body>
+</html>
