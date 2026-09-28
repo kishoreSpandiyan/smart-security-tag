@@ -1,6 +1,6 @@
 # Smart Security Tag with Tamper Detection and QR Payment Unlock
 
-## 📌 Project Overview
+## 📌 Project Overvie
 
 The **Smart Security Tag** is an IoT-based security system designed to prevent theft of valuable items in retail environments. The system uses an **ESP32 microcontroller** with a **tamper detection mechanism** and a **QR code payment simulation system**.
 
